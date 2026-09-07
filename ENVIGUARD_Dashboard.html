@@ -4,6 +4,11 @@
   <meta charset="utf-8"> 
   <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
   <title>ENVIGUARD SYS Dashboard</title> 
+  
+  <!-- مكتبات Firebase لقراءة البيانات فورياً -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
   <style> 
     * { 
       box-sizing: border-box; 
@@ -190,6 +195,13 @@
     const TEMP_MAX = 35;
     const HUM_MAX = 80;
 
+    // --- إعداد الاتصال بـ Firebase ---
+    const firebaseConfig = {
+      databaseURL: "https://envigurd-default-rtdb.firebaseio.com"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
     function checkAlarms(temp, hum) {
       let isTempHigh = temp > TEMP_MAX;
       let isHumHigh = hum > HUM_MAX;
@@ -251,6 +263,21 @@
         else el.className = 'oled-value status-off'; 
       } 
     } 
+
+    // --- القراءة الفورية المباشرة من Firebase ---
+    db.ref('system').on('value', (snapshot) => {
+      const data = snapshot.val();
+      if(data) {
+        let tempVal = data.temp ?? 0;
+        let humVal = data.hum ?? 0;
+        let modeVal = data.mode ?? 'AUTO';
+        let fanVal = data.fan ? 'ON' : 'OFF';
+        let sysVal = (tempVal > TEMP_MAX || humVal > HUM_MAX) ? 'WARNING' : 'OK';
+
+        updateReadings(tempVal, humVal, modeVal);
+        updateActuators(fanVal, sysVal);
+      }
+    });
   </script> 
 </body> 
 </html>
