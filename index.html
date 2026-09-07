@@ -1,0 +1,283 @@
+<!DOCTYPE html> 
+<html lang="ar" dir="rtl"> 
+<head> 
+  <meta charset="utf-8"> 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+  <title>ENVIGUARD SYS Dashboard</title> 
+  
+  <!-- مكتبات Firebase لقراءة البيانات فورياً -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <style> 
+    * { 
+      box-sizing: border-box; 
+      margin: 0; 
+      padding: 0; 
+      font-family: 'Consolas', 'Courier New', monospace; 
+    } 
+    body { 
+      background-color: #080c14; 
+      color: #ffffff; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: flex-start; 
+      min-height: 100vh; 
+      padding: 12px; 
+      gap: 15px; 
+    } 
+    .oled-screen { 
+      background: #000000; 
+      border: 2px solid #1f293d; 
+      border-radius: 12px; 
+      padding: 12px 20px; 
+      width: 100%; 
+      max-width: 360px; 
+      box-shadow: 0 0 12px rgba(0, 210, 211, 0.15); 
+    } 
+    .oled-title { 
+      text-align: center; 
+      font-size: 16px; 
+      font-weight: bold; 
+      color: #00d2d3; 
+      letter-spacing: 1.5px; 
+      border-bottom: 1px dashed #232f48; 
+      padding-bottom: 6px; 
+      margin-bottom: 10px; 
+    } 
+    .oled-row { 
+      display: flex; 
+      justify-content: space-between; 
+      font-size: 15px; 
+      margin: 5px 0; 
+      color: #00ffcc; 
+    } 
+    .oled-value { 
+      color: #ffffff; 
+      font-weight: bold; 
+    } 
+    .status-on { color: #2ed573 !important; } 
+    .status-off { color: #ff4757 !important; } 
+    .status-warn { color: #ffa502 !important; } 
+
+    .alarm-screen {
+      transition: all 0.3s ease;
+    }
+    .alarm-active {
+      border-color: #ff4757 !important;
+      box-shadow: 0 0 15px rgba(255, 71, 87, 0.4) !important;
+      animation: blink 1s infinite alternate;
+    }
+    @keyframes blink {
+      from { border-color: #ff4757; }
+      to { border-color: #570000; }
+    }
+
+    .gauges-wrapper { 
+      display: flex; 
+      justify-content: space-around; 
+      width: 100%; 
+      max-width: 360px; 
+      gap: 8px; 
+    } 
+    .gauge-card { 
+      background: #111827; 
+      border: 1px solid #1f293d; 
+      border-radius: 10px; 
+      padding: 8px; 
+      flex: 1; 
+      text-align: center; 
+    } 
+    .gauge-title { 
+      font-size: 11px; 
+      color: #9ca3af; 
+      margin-bottom: 6px; 
+    } 
+    .circle-outer { 
+      position: relative; 
+      width: 70px; 
+      height: 70px; 
+      margin: 0 auto; 
+      border-radius: 50%; 
+      background: conic-gradient(var(--color) calc(var(--percent) * 1%), #1f293d 0); 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      transition: background 0.4s ease; 
+      box-shadow: 0 0 8px var(--color); 
+    } 
+    .circle-inner { 
+      width: 56px; 
+      height: 56px; 
+      background: #111827; 
+      border-radius: 50%; 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: center; 
+      align-items: center; 
+    } 
+    .val { 
+      font-size: 13px; 
+      font-weight: bold; 
+    } 
+    .unit { 
+      font-size: 8px; 
+      color: #6b7280; 
+    } 
+  </style> 
+</head> 
+<body> 
+
+  <div class="oled-screen"> 
+    <div class="oled-title">ENVIGUARD SYS</div> 
+    <div class="oled-row"> 
+      <span>TEMP :</span> 
+      <span class="oled-value" id="oledTemp">0.0 C</span> 
+    </div> 
+    <div class="oled-row"> 
+      <span>HUM  :</span> 
+      <span class="oled-value" id="oledHum">0.0 %</span> 
+    </div> 
+    <div class="oled-row"> 
+      <span>MODE :</span> 
+      <span class="oled-value" id="oledMode" style="color: #ff9f43;">AUTO</span> 
+    </div> 
+  </div> 
+
+  <div class="oled-screen alarm-screen" id="oledAlarmBox"> 
+    <div class="oled-title">ALARM SYSTEM</div> 
+    <div class="oled-row"> 
+      <span>TEMP ALARM :</span> 
+      <span class="oled-value status-on" id="alarmTemp">NORMAL</span> 
+    </div> 
+    <div class="oled-row"> 
+      <span>HUM ALARM  :</span> 
+      <span class="oled-value status-on" id="alarmHum">NORMAL</span> 
+    </div> 
+  </div> 
+
+  <div class="oled-screen"> 
+    <div class="oled-title">ACTUATOR STATUS</div> 
+    <div class="oled-row"> 
+      <span>FAN  :</span> 
+      <span class="oled-value status-on" id="statusFan">ON</span> 
+    </div> 
+    <div class="oled-row"> 
+      <span>SYS  :</span> 
+      <span class="oled-value status-warn" id="statusSys">WARNING</span> 
+    </div> 
+  </div> 
+
+  <div class="gauges-wrapper"> 
+    <div class="gauge-card"> 
+      <div class="gauge-title">الحرارة</div> 
+      <div class="circle-outer" id="tempRing" style="--color: #ff4757; --percent: 0;"> 
+        <div class="circle-inner"> 
+          <span class="val" id="gTemp">0</span> 
+          <span class="unit">°C</span> 
+        </div> 
+      </div> 
+    </div> 
+
+    <div class="gauge-card"> 
+      <div class="gauge-title">الرطوبة</div> 
+      <div class="circle-outer" id="humRing" style="--color: #00d2d3; --percent: 0;"> 
+        <div class="circle-inner"> 
+          <span class="val" id="gHum">0</span> 
+          <span class="unit">%</span> 
+        </div> 
+      </div> 
+    </div> 
+  </div> 
+
+  <script> 
+    const TEMP_MAX = 35;
+    const HUM_MAX = 80;
+
+    // --- إعداد الاتصال بـ Firebase ---
+    const firebaseConfig = {
+      databaseURL: "https://envigurd-default-rtdb.firebaseio.com"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function checkAlarms(temp, hum) {
+      let isTempHigh = temp > TEMP_MAX;
+      let isHumHigh = hum > HUM_MAX;
+
+      let elTemp = document.getElementById('alarmTemp');
+      let elHum = document.getElementById('alarmHum');
+      let box = document.getElementById('oledAlarmBox');
+
+      if (isTempHigh) {
+        elTemp.innerText = 'HIGH 🚨';
+        elTemp.className = 'oled-value status-off';
+      } else {
+        elTemp.innerText = 'NORMAL';
+        elTemp.className = 'oled-value status-on';
+      }
+
+      if (isHumHigh) {
+        elHum.innerText = 'HIGH 🚨';
+        elHum.className = 'oled-value status-off';
+      } else {
+        elHum.innerText = 'NORMAL';
+        elHum.className = 'oled-value status-on';
+      }
+
+      if (isTempHigh || isHumHigh) {
+        box.classList.add('alarm-active');
+      } else {
+        box.classList.remove('alarm-active');
+      }
+    }
+
+    function updateReadings(temp, hum, mode) { 
+      if(temp !== undefined) { 
+        document.getElementById('oledTemp').innerText = temp + ' C'; 
+        document.getElementById('gTemp').innerText = temp; 
+        document.getElementById('tempRing').style.setProperty('--percent', Math.min((temp / 50) * 100, 100)); 
+      } 
+      if(hum !== undefined) { 
+        document.getElementById('oledHum').innerText = hum + ' %'; 
+        document.getElementById('gHum').innerText = hum; 
+        document.getElementById('humRing').style.setProperty('--percent', Math.min(hum, 100)); 
+      } 
+      if(mode !== undefined) document.getElementById('oledMode').innerText = mode; 
+
+      checkAlarms(temp || 0, hum || 0);
+    } 
+
+    function updateActuators(fanState, sysStatus) { 
+      if(fanState !== undefined) { 
+        let el = document.getElementById('statusFan'); 
+        el.innerText = fanState; 
+        el.className = 'oled-value ' + (fanState.toUpperCase() === 'ON' ? 'status-on' : 'status-off'); 
+      } 
+      if(sysStatus !== undefined) { 
+        let el = document.getElementById('statusSys'); 
+        el.innerText = sysStatus; 
+        if(sysStatus.toUpperCase() === 'OK') el.className = 'oled-value status-on'; 
+        else if(sysStatus.toUpperCase() === 'WARNING') el.className = 'oled-value status-warn'; 
+        else el.className = 'oled-value status-off'; 
+      } 
+    } 
+
+    // --- القراءة الفورية المباشرة من Firebase ---
+    db.ref('system').on('value', (snapshot) => {
+      const data = snapshot.val();
+      if(data) {
+        let tempVal = data.temp ?? 0;
+        let humVal = data.hum ?? 0;
+        let modeVal = data.mode ?? 'AUTO';
+        let fanVal = data.fan ? 'ON' : 'OFF';
+        let sysVal = (tempVal > TEMP_MAX || humVal > HUM_MAX) ? 'WARNING' : 'OK';
+
+        updateReadings(tempVal, humVal, modeVal);
+        updateActuators(fanVal, sysVal);
+      }
+    });
+  </script> 
+</body> 
+</html>
