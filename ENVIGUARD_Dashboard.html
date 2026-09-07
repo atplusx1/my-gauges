@@ -135,10 +135,6 @@
       <span class="oled-value" id="oledHum">0.0 %</span> 
     </div> 
     <div class="oled-row"> 
-      <span>WATER:</span> 
-      <span class="oled-value" id="oledWater">0 %</span> 
-    </div> 
-    <div class="oled-row"> 
       <span>MODE :</span> 
       <span class="oled-value" id="oledMode" style="color: #ff9f43;">AUTO</span> 
     </div> 
@@ -154,10 +150,6 @@
       <span>HUM ALARM  :</span> 
       <span class="oled-value status-on" id="alarmHum">NORMAL</span> 
     </div> 
-    <div class="oled-row"> 
-      <span>WATER ALARM:</span> 
-      <span class="oled-value status-on" id="alarmWater">NORMAL</span> 
-    </div> 
   </div> 
 
   <div class="oled-screen"> 
@@ -165,10 +157,6 @@
     <div class="oled-row"> 
       <span>FAN  :</span> 
       <span class="oled-value status-on" id="statusFan">ON</span> 
-    </div> 
-    <div class="oled-row"> 
-      <span>PUMP :</span> 
-      <span class="oled-value status-on" id="statusPump">ON</span> 
     </div> 
     <div class="oled-row"> 
       <span>SYS  :</span> 
@@ -196,31 +184,18 @@
         </div> 
       </div> 
     </div> 
-
-    <div class="gauge-card"> 
-      <div class="gauge-title">المياه</div> 
-      <div class="circle-outer" id="waterRing" style="--color: #2e86de; --percent: 0;"> 
-        <div class="circle-inner"> 
-          <span class="val" id="gWater">0</span> 
-          <span class="unit">%</span> 
-        </div> 
-      </div> 
-    </div> 
   </div> 
 
   <script> 
     const TEMP_MAX = 35;
     const HUM_MAX = 80;
-    const WATER_MAX = 90;
 
-    function checkAlarms(temp, hum, water) {
+    function checkAlarms(temp, hum) {
       let isTempHigh = temp > TEMP_MAX;
       let isHumHigh = hum > HUM_MAX;
-      let isWaterHigh = water > WATER_MAX;
 
       let elTemp = document.getElementById('alarmTemp');
       let elHum = document.getElementById('alarmHum');
-      let elWater = document.getElementById('alarmWater');
       let box = document.getElementById('oledAlarmBox');
 
       if (isTempHigh) {
@@ -239,22 +214,14 @@
         elHum.className = 'oled-value status-on';
       }
 
-      if (isWaterHigh) {
-        elWater.innerText = 'HIGH 🚨';
-        elWater.className = 'oled-value status-off';
-      } else {
-        elWater.innerText = 'NORMAL';
-        elWater.className = 'oled-value status-on';
-      }
-
-      if (isTempHigh || isHumHigh || isWaterHigh) {
+      if (isTempHigh || isHumHigh) {
         box.classList.add('alarm-active');
       } else {
         box.classList.remove('alarm-active');
       }
     }
 
-    function updateReadings(temp, hum, water, mode) { 
+    function updateReadings(temp, hum, mode) { 
       if(temp !== undefined) { 
         document.getElementById('oledTemp').innerText = temp + ' C'; 
         document.getElementById('gTemp').innerText = temp; 
@@ -265,26 +232,16 @@
         document.getElementById('gHum').innerText = hum; 
         document.getElementById('humRing').style.setProperty('--percent', Math.min(hum, 100)); 
       } 
-      if(water !== undefined) { 
-        document.getElementById('oledWater').innerText = water + ' %'; 
-        document.getElementById('gWater').innerText = water; 
-        document.getElementById('waterRing').style.setProperty('--percent', Math.min(water, 100)); 
-      } 
       if(mode !== undefined) document.getElementById('oledMode').innerText = mode; 
 
-      checkAlarms(temp || 0, hum || 0, water || 0);
+      checkAlarms(temp || 0, hum || 0);
     } 
 
-    function updateActuators(fanState, pumpState, sysStatus) { 
+    function updateActuators(fanState, sysStatus) { 
       if(fanState !== undefined) { 
         let el = document.getElementById('statusFan'); 
         el.innerText = fanState; 
         el.className = 'oled-value ' + (fanState.toUpperCase() === 'ON' ? 'status-on' : 'status-off'); 
-      } 
-      if(pumpState !== undefined) { 
-        let el = document.getElementById('statusPump'); 
-        el.innerText = pumpState; 
-        el.className = 'oled-value ' + (pumpState.toUpperCase() === 'ON' ? 'status-on' : 'status-off'); 
       } 
       if(sysStatus !== undefined) { 
         let el = document.getElementById('statusSys'); 
