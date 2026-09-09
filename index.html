@@ -27,6 +27,29 @@
       padding: 12px; 
       gap: 15px; 
     } 
+
+    .top-bar {
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .btn-lang {
+      background: #111827;
+      border: 1px solid #00d2d3;
+      color: #00d2d3;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      font-family: inherit;
+      transition: all 0.3s;
+    }
+    .btn-lang:hover {
+      background: #00d2d3;
+      color: #000;
+    }
+
     .oled-screen { 
       background: #000000; 
       border: 2px solid #1f293d; 
@@ -49,17 +72,28 @@
     .oled-row { 
       display: flex; 
       justify-content: space-between; 
-      font-size: 15px; 
-      margin: 5px 0; 
+      align-items: center;
+      font-size: 14px; 
+      margin: 6px 0; 
       color: #00ffcc; 
     } 
     .oled-value { 
       color: #ffffff; 
       font-weight: bold; 
     } 
+    .oled-select {
+      background: #080c14;
+      border: 1px solid #00d2d3;
+      color: #00ffcc;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-family: inherit;
+    }
+
     .status-on { color: #2ed573 !important; } 
     .status-off { color: #ff4757 !important; } 
     .status-warn { color: #ffa502 !important; } 
+    .status-cold { color: #1e90ff !important; }
 
     .alarm-screen {
       transition: all 0.3s ease;
@@ -72,6 +106,20 @@
     @keyframes blink {
       from { border-color: #ff4757; }
       to { border-color: #570000; }
+    }
+
+    /* حركة أجنحة المروحة */
+    .fan-icon {
+      display: inline-block;
+      transition: transform 0.5s linear;
+    }
+    .fan-spinning {
+      animation: spin 1s linear infinite;
+      color: #00d2d3;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
 
     .gauges-wrapper { 
@@ -129,50 +177,74 @@
 </head> 
 <body> 
 
+  <div class="top-bar">
+    <button class="btn-lang" onclick="toggleLanguage()" id="langBtn">English 🌐</button>
+  </div>
+
+  <!-- كارت اختيار النبات واسم النبات الحالي -->
+  <div class="oled-screen"> 
+    <div class="oled-title" id="t-plantTitle">🌿 النبات المختار</div> 
+    <div class="oled-row"> 
+      <span id="t-selectPlant">اختيار النبات:</span> 
+      <select id="plantSelector" class="oled-select" onchange="selectPlant(this.value)"></select>
+    </div> 
+    <div class="oled-row"> 
+      <span id="t-activePlant">اسم النبات:</span> 
+      <span class="oled-value" id="oledPlantName" style="color: #ff9f43;">--</span> 
+    </div> 
+  </div> 
+
+  <!-- كارت القراءات الأساسية -->
   <div class="oled-screen"> 
     <div class="oled-title">ENVIGUARD SYS</div> 
     <div class="oled-row"> 
-      <span>TEMP :</span> 
-      <span class="oled-value" id="oledTemp">0.0 C</span> 
+      <span id="t-temp">الحرارة:</span> 
+      <span class="oled-value" id="oledTemp">0.0 °C</span> 
     </div> 
     <div class="oled-row"> 
-      <span>HUM  :</span> 
+      <span id="t-hum">الرطوبة:</span> 
       <span class="oled-value" id="oledHum">0.0 %</span> 
     </div> 
     <div class="oled-row"> 
-      <span>MODE :</span> 
+      <span id="t-mode">النمط:</span> 
       <span class="oled-value" id="oledMode" style="color: #ff9f43;">AUTO</span> 
     </div> 
   </div> 
 
+  <!-- كارت نظام الإنذار -->
   <div class="oled-screen alarm-screen" id="oledAlarmBox"> 
-    <div class="oled-title">ALARM SYSTEM</div> 
+    <div class="oled-title" id="t-alarmTitle">نظام الإنذار</div> 
     <div class="oled-row"> 
-      <span>TEMP ALARM :</span> 
-      <span class="oled-value status-on" id="alarmTemp">NORMAL</span> 
+      <span id="t-alarmTemp">إنذار الحرارة:</span> 
+      <span class="oled-value status-on" id="alarmTemp">طبيعي</span> 
     </div> 
     <div class="oled-row"> 
-      <span>HUM ALARM  :</span> 
-      <span class="oled-value status-on" id="alarmHum">NORMAL</span> 
+      <span id="t-alarmHum">إنذار الرطوبة:</span> 
+      <span class="oled-value status-on" id="alarmHum">طبيعي</span> 
     </div> 
   </div> 
 
+  <!-- كارت حالة الأجهزة -->
   <div class="oled-screen"> 
-    <div class="oled-title">ACTUATOR STATUS</div> 
+    <div class="oled-title" id="t-actTitle">حالة الأجهزة</div> 
     <div class="oled-row"> 
-      <span>FAN  :</span> 
-      <span class="oled-value status-on" id="statusFan">ON</span> 
+      <span id="t-fan">المروحة:</span> 
+      <span>
+        <span class="fan-icon" id="fanIcon">🌀</span>
+        <span class="oled-value status-on" id="statusFan">OFF</span> 
+      </span>
     </div> 
     <div class="oled-row"> 
-      <span>SYS  :</span> 
-      <span class="oled-value status-warn" id="statusSys">WARNING</span> 
+      <span id="t-sys">النظام:</span> 
+      <span class="oled-value status-warn" id="statusSys">تحذير</span> 
     </div> 
   </div> 
 
+  <!-- العدادات الدائرية -->
   <div class="gauges-wrapper"> 
     <div class="gauge-card"> 
-      <div class="gauge-title">الحرارة</div> 
-      <div class="circle-outer" id="tempRing" style="--color: #ff4757; --percent: 0;"> 
+      <div class="gauge-title" id="t-gTemp">الحرارة</div> 
+      <div class="circle-outer" id="tempRing" style="--color: #00d2d3; --percent: 0;"> 
         <div class="circle-inner"> 
           <span class="val" id="gTemp">0</span> 
           <span class="unit">°C</span> 
@@ -181,7 +253,7 @@
     </div> 
 
     <div class="gauge-card"> 
-      <div class="gauge-title">الرطوبة</div> 
+      <div class="gauge-title" id="t-gHum">الرطوبة</div> 
       <div class="circle-outer" id="humRing" style="--color: #00d2d3; --percent: 0;"> 
         <div class="circle-inner"> 
           <span class="val" id="gHum">0</span> 
@@ -192,92 +264,225 @@
   </div> 
 
   <script> 
-    const TEMP_MAX = 35;
-    const HUM_MAX = 80;
+    let currentLang = 'ar';
+    const dict = {
+      ar: {
+        langBtn: "English 🌐",
+        plantTitle: "🌿 النبات المختار",
+        selectPlant: "اختيار النبات:",
+        activePlant: "اسم النبات:",
+        temp: "الحرارة:",
+        hum: "الرطوبة:",
+        mode: "النمط:",
+        alarmTitle: "نظام الإنذار",
+        alarmTemp: "إنذار الحرارة:",
+        alarmHum: "إنذار الرطوبة:",
+        actTitle: "حالة الأجهزة",
+        fan: "المروحة:",
+        sys: "النظام:",
+        gTemp: "الحرارة",
+        gHum: "الرطوبة",
+        normal: "طبيعي",
+        high: "مرتفعة 🚨",
+        low: "منخفضة 🥶",
+        ok: "سليم",
+        warning: "تحذير"
+      },
+      en: {
+        langBtn: "عربي 🌐",
+        plantTitle: "🌿 ACTIVE PLANT",
+        selectPlant: "SELECT PLANT:",
+        activePlant: "PLANT NAME:",
+        temp: "TEMP:",
+        hum: "HUMIDITY:",
+        mode: "MODE:",
+        alarmTitle: "ALARM SYSTEM",
+        alarmTemp: "TEMP ALARM:",
+        alarmHum: "HUM ALARM:",
+        actTitle: "ACTUATOR STATUS",
+        fan: "FAN:",
+        sys: "SYSTEM:",
+        gTemp: "TEMPERATURE",
+        gHum: "HUMIDITY",
+        normal: "NORMAL",
+        high: "HIGH 🚨",
+        low: "LOW 🥶",
+        ok: "OK",
+        warning: "WARNING"
+      }
+    };
 
-    // --- إعداد الاتصال بـ Firebase ---
+    function toggleLanguage() {
+      currentLang = currentLang === 'ar' ? 'en' : 'ar';
+      document.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+      const t = dict[currentLang];
+      
+      document.getElementById('langBtn').innerText = t.langBtn;
+      document.getElementById('t-plantTitle').innerText = t.plantTitle;
+      document.getElementById('t-selectPlant').innerText = t.selectPlant;
+      document.getElementById('t-activePlant').innerText = t.activePlant;
+      document.getElementById('t-temp').innerText = t.temp;
+      document.getElementById('t-hum').innerText = t.hum;
+      document.getElementById('t-mode').innerText = t.mode;
+      document.getElementById('t-alarmTitle').innerText = t.alarmTitle;
+      document.getElementById('t-alarmTemp').innerText = t.alarmTemp;
+      document.getElementById('t-alarmHum').innerText = t.alarmHum;
+      document.getElementById('t-actTitle').innerText = t.actTitle;
+      document.getElementById('t-fan').innerText = t.fan;
+      document.getElementById('t-sys').innerText = t.sys;
+      document.getElementById('t-gTemp').innerText = t.gTemp;
+      document.getElementById('t-gHum').innerText = t.gHum;
+
+      renderSystemData();
+    }
+
+    // --- إعداد Firebase ---
     const firebaseConfig = {
       databaseURL: "https://envigurd-default-rtdb.firebaseio.com"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    function checkAlarms(temp, hum) {
-      let isTempHigh = temp > TEMP_MAX;
-      let isHumHigh = hum > HUM_MAX;
+    let plantsList = {};
+    let activePlantKey = "";
+    let sysData = {};
+
+    // قراءة قائمة النباتات من الكلاود
+    db.ref('plants').on('value', (snapshot) => {
+      plantsList = snapshot.val() || {};
+      const select = document.getElementById('plantSelector');
+      select.innerHTML = '';
+      
+      let keys = Object.keys(plantsList);
+      keys.forEach(k => {
+        let opt = document.createElement('option');
+        opt.value = k;
+        opt.innerText = plantsList[k].name;
+        select.appendChild(opt);
+      });
+
+      if (keys.length > 0 && !activePlantKey) {
+        selectPlant(keys[0]);
+      }
+    });
+
+    // إرسال بيانات النبات المحدد للسحابة
+    function selectPlant(key) {
+      if(!plantsList[key]) return;
+      activePlantKey = key;
+      const p = plantsList[key];
+
+      document.getElementById('oledPlantName').innerText = p.name;
+
+      db.ref('system').update({
+        plant: p.name,
+        minT: p.minT,
+        maxT: p.maxT,
+        minH: p.minH,
+        maxH: p.maxH
+      });
+    }
+
+    // قراءة بيانات النظام الحية من الكلاود
+    db.ref('system').on('value', (snapshot) => {
+      sysData = snapshot.val() || {};
+      renderSystemData();
+    });
+
+    function renderSystemData() {
+      if (!sysData) return;
+      const t = dict[currentLang];
+
+      let tempVal = sysData.temp ?? 0;
+      let humVal = sysData.hum ?? 0;
+      let modeVal = sysData.mode ?? 'AUTO';
+      let fanState = sysData.fan ? 'ON' : 'OFF';
+
+      let minT = sysData.minT ?? -10;
+      let maxT = sysData.maxT ?? 35;
+      let minH = sysData.minH ?? 30;
+      let maxH = sysData.maxH ?? 80;
+
+      // تحديث قراءات OLED الأساسية
+      document.getElementById('oledTemp').innerText = tempVal + ' °C'; 
+      document.getElementById('oledHum').innerText = humVal + ' %'; 
+      document.getElementById('oledMode').innerText = modeVal; 
+
+      if(sysData.plant) {
+        document.getElementById('oledPlantName').innerText = sysData.plant;
+      }
+
+      // حساب الإنذارات الملونة
+      let isTempHigh = tempVal > maxT;
+      let isTempLow = tempVal < minT;
+      let isHumHigh = humVal > maxH;
+      let isHumLow = humVal < minH;
 
       let elTemp = document.getElementById('alarmTemp');
       let elHum = document.getElementById('alarmHum');
       let box = document.getElementById('oledAlarmBox');
 
+      // إنذار الحرارة (أحمر للارتفاع، أزرق للانخفاض، أخضر للطبيعي)
       if (isTempHigh) {
-        elTemp.innerText = 'HIGH 🚨';
+        elTemp.innerText = t.high;
         elTemp.className = 'oled-value status-off';
+      } else if (isTempLow) {
+        elTemp.innerText = t.low;
+        elTemp.className = 'oled-value status-cold';
       } else {
-        elTemp.innerText = 'NORMAL';
+        elTemp.innerText = t.normal;
         elTemp.className = 'oled-value status-on';
       }
 
+      // إنذار الرطوبة
       if (isHumHigh) {
-        elHum.innerText = 'HIGH 🚨';
+        elHum.innerText = t.high;
         elHum.className = 'oled-value status-off';
+      } else if (isHumLow) {
+        elHum.innerText = t.low;
+        elHum.className = 'oled-value status-cold';
       } else {
-        elHum.innerText = 'NORMAL';
+        elHum.innerText = t.normal;
         elHum.className = 'oled-value status-on';
       }
 
-      if (isTempHigh || isHumHigh) {
+      // إضاءة صندوق الإنذار الكلي
+      if (isTempHigh || isTempLow || isHumHigh || isHumLow) {
         box.classList.add('alarm-active');
       } else {
         box.classList.remove('alarm-active');
       }
-    }
 
-    function updateReadings(temp, hum, mode) { 
-      if(temp !== undefined) { 
-        document.getElementById('oledTemp').innerText = temp + ' C'; 
-        document.getElementById('gTemp').innerText = temp; 
-        document.getElementById('tempRing').style.setProperty('--percent', Math.min((temp / 50) * 100, 100)); 
-      } 
-      if(hum !== undefined) { 
-        document.getElementById('oledHum').innerText = hum + ' %'; 
-        document.getElementById('gHum').innerText = hum; 
-        document.getElementById('humRing').style.setProperty('--percent', Math.min(hum, 100)); 
-      } 
-      if(mode !== undefined) document.getElementById('oledMode').innerText = mode; 
+      // تحديث المروحة وتأثير الحركة
+      let elFan = document.getElementById('statusFan');
+      let isFanOn = fanState.toUpperCase() === 'ON';
+      elFan.innerText = fanState;
+      elFan.className = 'oled-value ' + (isFanOn ? 'status-on' : 'status-off');
+      document.getElementById('fanIcon').className = isFanOn ? "fan-icon fan-spinning" : "fan-icon";
 
-      checkAlarms(temp || 0, hum || 0);
-    } 
-
-    function updateActuators(fanState, sysStatus) { 
-      if(fanState !== undefined) { 
-        let el = document.getElementById('statusFan'); 
-        el.innerText = fanState; 
-        el.className = 'oled-value ' + (fanState.toUpperCase() === 'ON' ? 'status-on' : 'status-off'); 
-      } 
-      if(sysStatus !== undefined) { 
-        let el = document.getElementById('statusSys'); 
-        el.innerText = sysStatus; 
-        if(sysStatus.toUpperCase() === 'OK') el.className = 'oled-value status-on'; 
-        else if(sysStatus.toUpperCase() === 'WARNING') el.className = 'oled-value status-warn'; 
-        else el.className = 'oled-value status-off'; 
-      } 
-    } 
-
-    // --- القراءة الفورية المباشرة من Firebase ---
-    db.ref('system').on('value', (snapshot) => {
-      const data = snapshot.val();
-      if(data) {
-        let tempVal = data.temp ?? 0;
-        let humVal = data.hum ?? 0;
-        let modeVal = data.mode ?? 'AUTO';
-        let fanVal = data.fan ? 'ON' : 'OFF';
-        let sysVal = (tempVal > TEMP_MAX || humVal > HUM_MAX) ? 'WARNING' : 'OK';
-
-        updateReadings(tempVal, humVal, modeVal);
-        updateActuators(fanVal, sysVal);
+      // حالة النظام
+      let elSys = document.getElementById('statusSys');
+      if (isTempHigh || isTempLow || isHumHigh || isHumLow) {
+        elSys.innerText = t.warning;
+        elSys.className = 'oled-value status-warn';
+      } else {
+        elSys.innerText = t.ok;
+        elSys.className = 'oled-value status-on';
       }
-    });
+
+      // تحديث العدادات الدائرية
+      document.getElementById('gTemp').innerText = tempVal; 
+      let tempPercent = Math.min(Math.max(((tempVal + 40) / 100) * 100, 0), 100);
+      let tempColor = isTempHigh ? '#ff4757' : (isTempLow ? '#1e90ff' : '#00d2d3');
+      document.getElementById('tempRing').style.setProperty('--percent', tempPercent); 
+      document.getElementById('tempRing').style.setProperty('--color', tempColor); 
+
+      document.getElementById('gHum').innerText = humVal; 
+      let humPercent = Math.min(Math.max(humVal, 0), 100);
+      let humColor = isHumHigh ? '#ff4757' : (isHumLow ? '#1e90ff' : '#00d2d3');
+      document.getElementById('humRing').style.setProperty('--percent', humPercent); 
+      document.getElementById('humRing').style.setProperty('--color', humColor); 
+    }
   </script> 
 </body> 
 </html>
